@@ -1,0 +1,323 @@
+import { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import { Transaction } from '../models/Transaction';
+import { parseCSV } from '../services/csvParser';
+
+export async function uploadTransactions(req: Request, res: Response) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No file uploaded' });
+    }
+
+    const parsedTransactions = parseCSV(req.file.buffer);
+
+    if (parsedTransactions.length === 0) {
+      return res.status(400).json({ success: false, error: 'No valid transactions found in CSV' });
+    }
+
+    const batchId = `batch_${Date.now()}_${uuidv4().slice(0, 8)}`;
+    let imported = 0;
+    let skipped = 0;
+
+    for (const tx of parsedTransactions) {
+      if (tx.zkbReference) {
+        const existing = await Transaction.findOne({ zkbReference: tx.zkbReference });
+        if (existing) {
+          skipped++;
+          continue;
+        }
+      }
+
+      await Transaction.create({
+        ...tx,
+        importBatchId: batchId,
+        importedAt: new Date()
+      });
+      imported++;
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Successfully imported ${imported} transactions`,
+      data: { imported, skipped, batchId }
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ success: false, error: 'Failed to process CSV file' });
+  }
+}
+
+export async function getTransactions(req: Request, res: Response) {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const sortBy = (req.query.sortBy as string) || 'date';
+    const order = req.query.order === 'asc' ? 1 : -1;
+    const type = req.query.type as string;
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+    const search = req.query.search as string;
+
+    const filter: Record<string, unknown> = {};
+
+    if (type && (type === 'debit' || type === 'credit')) {
+      filter.type = type;
+    }
+
+    if (startDate || endDate) {
+      filter.date = {};
+      if (startDate) (filter.date as Record<string, Date>).$gte = new Date(startDate);
+      if (endDate) (filter.date as Record<string, Date>).$lte = new Date(endDate);
+    }
+
+    if (search) {
+      filter.bookingText = { $regex: search, $options: 'i' };
+    }
+
+    const total = await Transaction.countDocuments(filter);
+    const transactions = await Transaction.find(filter)
+      .sort({ [sortBy]: order })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.json({
+      success: true,
+      data: transactions,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get transactions error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch transactions' });
+  }
+}
+
+export async function getYearlySummary(_req: Request, res: Response) {
+  try {
+    const summary = await Transaction.aggregate([
+      {
+        $group: {
+          _id: '$monthKey',
+          income: { $sum: '$creditCHF' },
+          outcome: { $sum: '$debitCHF' },
+          transactionCount: { $sum: 1 }
+        }
+      },
+      {
+        $addFields: {
+          savings: { $subtract: ['$income', '$outcome'] }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const formatted = summary.map(item => {
+      const [year, month] = item._id.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1);
+      const monthName = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+      return {
+        monthKey: item._id,
+        month: monthName,
+        income: item.income,
+        outcome: item.outcome,
+        savings: item.savings,
+        transactionCount: item.transactionCount
+      };
+    });
+
+    res.json({ success: true, data: formatted });
+  } catch (error) {
+    console.error('Yearly summary error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch yearly summary' });
+  }
+}
+
+export async function getMonthlySummary(req: Request, res: Response) {
+  try {
+    const { year, month } = req.params;
+    const monthKey = `${year}-${month.padStart(2, '0')}`;
+
+    const summary = await Transaction.aggregate([
+      { $match: { monthKey } },
+      {
+        $group: {
+          _id: '$dayKey',
+          income: { $sum: '$creditCHF' },
+          outcome: { $sum: '$debitCHF' },
+          transactionCount: { $sum: 1 },
+          endBalance: { $last: '$balanceCHF' }
+        }
+      },
+      {
+        $addFields: {
+          savings: { $subtract: ['$income', '$outcome'] }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const formatted = summary.map(item => {
+      const [y, m, d] = item._id.split('-');
+      const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+      const dayName = date.toLocaleString('en-US', { day: 'numeric', month: 'short' });
+
+      return {
+        dayKey: item._id,
+        day: dayName,
+        income: item.income,
+        outcome: item.outcome,
+        savings: item.savings,
+        balance: item.endBalance,
+        transactionCount: item.transactionCount
+      };
+    });
+
+    res.json({ success: true, data: formatted });
+  } catch (error) {
+    console.error('Monthly summary error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch monthly summary' });
+  }
+}
+
+export async function getDailySummary(req: Request, res: Response) {
+  try {
+    const { year, month, day } = req.params;
+    const dayKey = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+    const transactions = await Transaction.find({ dayKey }).sort({ date: -1 });
+
+    const summary = transactions.reduce(
+      (acc, tx) => ({
+        income: acc.income + tx.creditCHF,
+        outcome: acc.outcome + tx.debitCHF
+      }),
+      { income: 0, outcome: 0 }
+    );
+
+    const lastTransaction = transactions[0];
+
+    res.json({
+      success: true,
+      data: {
+        dayKey,
+        income: summary.income,
+        outcome: summary.outcome,
+        savings: summary.income - summary.outcome,
+        balance: lastTransaction?.balanceCHF || 0,
+        transactions
+      }
+    });
+  } catch (error) {
+    console.error('Daily summary error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch daily summary' });
+  }
+}
+
+export async function deleteBatch(req: Request, res: Response) {
+  try {
+    const { batchId } = req.params;
+    const result = await Transaction.deleteMany({ importBatchId: batchId });
+
+    res.json({
+      success: true,
+      message: `Deleted ${result.deletedCount} transactions`,
+      deleted: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Delete batch error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete batch' });
+  }
+}
+
+export async function deleteAllTransactions(_req: Request, res: Response) {
+  try {
+    const result = await Transaction.deleteMany({});
+
+    res.json({
+      success: true,
+      message: `Deleted ${result.deletedCount} transactions`,
+      deleted: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Delete all error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete transactions' });
+  }
+}
+
+function formatDateForCSV(date: Date): string {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
+}
+
+function formatNumberForCSV(num: number): string {
+  if (num === 0) return '';
+  return num.toFixed(2).replace('.', ',');
+}
+
+function escapeCSVField(field: string): string {
+  if (field.includes(';') || field.includes('"') || field.includes('\n')) {
+    return `"${field.replace(/"/g, '""')}"`;
+  }
+  return field;
+}
+
+export async function exportTransactions(_req: Request, res: Response) {
+  try {
+    const transactions = await Transaction.find({}).sort({ date: 1 });
+
+    if (transactions.length === 0) {
+      return res.status(404).json({ success: false, error: 'No transactions to export' });
+    }
+
+    const headers = [
+      'Date',
+      'Booking text',
+      'Curr',
+      'Amount details',
+      'ZKB reference',
+      'Reference number',
+      'Debit CHF',
+      'Credit CHF',
+      'Value date',
+      'Balance CHF',
+      'Payment purpose',
+      'Details',
+      'Category'
+    ];
+
+    const rows = transactions.map(tx => [
+      formatDateForCSV(tx.date),
+      escapeCSVField(tx.bookingText || ''),
+      tx.currency || 'CHF',
+      escapeCSVField(tx.amountDetails || ''),
+      tx.zkbReference || '',
+      tx.referenceNumber || '',
+      formatNumberForCSV(tx.debitCHF),
+      formatNumberForCSV(tx.creditCHF),
+      tx.valueDate ? formatDateForCSV(tx.valueDate) : '',
+      formatNumberForCSV(tx.balanceCHF),
+      escapeCSVField(tx.paymentPurpose || ''),
+      escapeCSVField(tx.details || ''),
+      tx.category || 'Uncategorized'
+    ]);
+
+    const csvContent = [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
+
+    const filename = `transactions_export_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csvContent);
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ success: false, error: 'Failed to export transactions' });
+  }
+}

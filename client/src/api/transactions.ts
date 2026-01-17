@@ -1,0 +1,70 @@
+import axios from 'axios';
+import type {
+  Transaction,
+  MonthlySummary,
+  DailySummary,
+  DayDetail,
+  UploadResponse,
+  ApiResponse,
+  PaginatedResponse
+} from '../types/transaction';
+
+const api = axios.create({
+  baseURL: '/api/transactions'
+});
+
+export async function uploadCSV(file: File): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post<UploadResponse>('/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return data;
+}
+
+export async function getTransactions(params?: {
+  page?: number;
+  limit?: number;
+  type?: 'debit' | 'credit';
+  search?: string;
+}): Promise<PaginatedResponse<Transaction>> {
+  const { data } = await api.get<PaginatedResponse<Transaction>>('/', { params });
+  return data;
+}
+
+export async function getYearlySummary(): Promise<ApiResponse<MonthlySummary[]>> {
+  const { data } = await api.get<ApiResponse<MonthlySummary[]>>('/summary/yearly');
+  return data;
+}
+
+export async function getMonthlySummary(year: string, month: string): Promise<ApiResponse<DailySummary[]>> {
+  const { data } = await api.get<ApiResponse<DailySummary[]>>(`/summary/monthly/${year}/${month}`);
+  return data;
+}
+
+export async function getDailySummary(year: string, month: string, day: string): Promise<ApiResponse<DayDetail>> {
+  const { data } = await api.get<ApiResponse<DayDetail>>(`/summary/daily/${year}/${month}/${day}`);
+  return data;
+}
+
+export async function deleteAllTransactions(): Promise<{ success: boolean; deleted: number }> {
+  const { data } = await api.delete<{ success: boolean; deleted: number }>('/all');
+  return data;
+}
+
+export async function exportTransactions(): Promise<void> {
+  const response = await api.get('/export', { responseType: 'blob' });
+  const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  const contentDisposition = response.headers['content-disposition'];
+  const filename = contentDisposition
+    ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+    : `transactions_export_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
