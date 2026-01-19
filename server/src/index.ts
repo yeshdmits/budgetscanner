@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { connectDatabase } from './config/database';
@@ -28,6 +29,14 @@ app.use('/api/settings', settingsRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Serve static files from client/dist in production
+app.use(express.static(path.join(__dirname, '../../client/dist')));
+
+// Catch-all: serve index.html for client-side routing
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
 async function start() {

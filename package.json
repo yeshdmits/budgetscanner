@@ -9,8 +9,8 @@
     "build": "npm run build:server && npm run build:client",
     "build:server": "cd server && npm run build",
     "build:client": "cd client && npm run build",
-    "db:start": "docker-compose up -d",
-    "db:stop": "docker-compose down",
+    "db:start": "docker compose up -d",
+    "db:stop": "docker compose down",
     "test": "playwright test",
     "test:ui": "playwright test --ui"
   },
