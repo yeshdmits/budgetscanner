@@ -1,6 +1,7 @@
 import { parse } from 'csv-parse/sync';
 import { categorizeTransaction } from './categoryService';
 import { Category } from '../models/Transaction';
+import { Settings } from '../models/Settings';
 
 interface RawCSVRow {
   Date: string;
@@ -26,7 +27,7 @@ export interface ParsedTransaction {
   referenceNumber: string;
   debitCHF: number;
   creditCHF: number;
-  valueDate: Date | null;
+  valueDate: Date;
   balanceCHF: number;
   paymentPurpose: string;
   details: string;
@@ -65,7 +66,11 @@ function formatDayKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export function parseCSV(buffer: Buffer): ParsedTransaction[] {
+export async function parseCSV(buffer: Buffer): Promise<ParsedTransaction[]> {
+  // Fetch user settings for savings transfer detection
+  const settings = await Settings.findOne({ key: 'default' });
+  const userFullName = settings?.userFullName || '';
+
   const content = buffer.toString('utf-8').replace(/^\uFEFF/, '');
 
   const records: RawCSVRow[] = parse(content, {
@@ -81,6 +86,10 @@ export function parseCSV(buffer: Buffer): ParsedTransaction[] {
   for (const row of records) {
     const date = parseDate(row.Date);
     if (!date) continue;
+
+    // Skip rows without valid value date
+    const valueDate = parseDate(row['Value date']);
+    if (!valueDate) continue;
 
     const debitCHF = parseNumber(row['Debit CHF']);
     const creditCHF = parseNumber(row['Credit CHF']);
@@ -98,7 +107,7 @@ export function parseCSV(buffer: Buffer): ParsedTransaction[] {
       referenceNumber: row['Reference number'] || '',
       debitCHF,
       creditCHF,
-      valueDate: parseDate(row['Value date']),
+      valueDate,
       balanceCHF: parseNumber(row['Balance CHF']),
       paymentPurpose,
       details: row.Details || '',
@@ -107,7 +116,7 @@ export function parseCSV(buffer: Buffer): ParsedTransaction[] {
       yearKey: formatYearKey(date),
       monthKey: formatMonthKey(date),
       dayKey: formatDayKey(date),
-      category: categorizeTransaction(bookingText, paymentPurpose, type),
+      category: categorizeTransaction(bookingText, paymentPurpose, type, userFullName),
       categoryManual: false
     });
   }

@@ -50,29 +50,6 @@ export function DailySummary({ dayKey, onBack }: DailySummaryProps) {
     }
   };
 
-  const dayName = new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleString('en-US', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 bg-red-50 text-red-700 rounded-lg">
-        Failed to load daily data
-      </div>
-    );
-  }
-
   const dayData = data?.data;
 
   const filteredAndSortedTransactions = useMemo(() => {
@@ -121,6 +98,29 @@ export function DailySummary({ dayKey, onBack }: DailySummaryProps) {
 
     return result;
   }, [dayData?.transactions, categoryFilter, typeFilter, sortField, sortOrder]);
+
+  const dayName = new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleString('en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-700 rounded-lg">
+        Failed to load daily data
+      </div>
+    );
+  }
 
   if (!dayData) {
     return (

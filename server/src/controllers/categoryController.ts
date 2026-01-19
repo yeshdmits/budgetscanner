@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Transaction, CATEGORIES } from '../models/Transaction';
+import { Settings } from '../models/Settings';
 import { categorizeTransaction, getAllCategories, getCategoryRules } from '../services/categoryService';
 
 export async function getCategorySummary(req: Request, res: Response) {
@@ -97,12 +98,16 @@ export async function getCategoryRulesHandler(_req: Request, res: Response) {
 
 export async function recategorizeTransactions(_req: Request, res: Response) {
   try {
+    // Fetch user settings for savings transfer detection
+    const settings = await Settings.findOne({ key: 'default' });
+    const userFullName = settings?.userFullName || '';
+
     // Only recategorize transactions that weren't manually categorized
     const transactions = await Transaction.find({ categoryManual: { $ne: true } });
 
     let updated = 0;
     for (const tx of transactions) {
-      const newCategory = categorizeTransaction(tx.bookingText, tx.paymentPurpose, tx.type);
+      const newCategory = categorizeTransaction(tx.bookingText, tx.paymentPurpose, tx.type, userFullName);
       if (tx.category !== newCategory) {
         tx.category = newCategory;
         await tx.save();

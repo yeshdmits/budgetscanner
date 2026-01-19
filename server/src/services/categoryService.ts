@@ -145,13 +145,27 @@ const categoryRules: CategoryRule[] = [
 // Sort rules by priority (highest first)
 const sortedRules = [...categoryRules].sort((a, b) => b.priority - a.priority);
 
-export function categorizeTransaction(bookingText: string, paymentPurpose: string, type: 'debit' | 'credit'): Category {
-  // Skip categorization for credit (income) transactions
+export function categorizeTransaction(
+  bookingText: string,
+  paymentPurpose: string,
+  type: 'debit' | 'credit',
+  userFullName?: string
+): Category {
+  const textToMatch = `${bookingText} ${paymentPurpose}`.toLowerCase();
+
+  // Check for savings transfer first (applies to both credit and debit)
+  // Only check if userFullName is provided and not empty
+  if (userFullName && userFullName.trim()) {
+    const savingsPattern = `account transfer: ${userFullName.toLowerCase()}`;
+    if (textToMatch.includes(savingsPattern)) {
+      return 'Savings Transfer';
+    }
+  }
+
+  // Skip categorization for other credit (income) transactions
   if (type === 'credit') {
     return 'Uncategorized';
   }
-
-  const textToMatch = `${bookingText} ${paymentPurpose}`.toLowerCase();
 
   for (const rule of sortedRules) {
     for (const pattern of rule.patterns) {
@@ -184,6 +198,7 @@ export function getAllCategories(): Category[] {
     'Travel',
     'Invest',
     'Addons',
+    'Savings Transfer',
     'Uncategorized'
   ];
 }

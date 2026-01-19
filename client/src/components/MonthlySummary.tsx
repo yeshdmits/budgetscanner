@@ -88,9 +88,10 @@ export function MonthlySummary({ monthKey, onDayClick, onBack }: MonthlySummaryP
   const totals = rawDays.reduce(
     (acc, item) => ({
       income: acc.income + item.income,
-      outcome: acc.outcome + item.outcome
+      outcome: acc.outcome + item.outcome,
+      savingsMovement: acc.savingsMovement + (item.savingsMovement || 0)
     }),
-    { income: 0, outcome: 0 }
+    { income: 0, outcome: 0, savingsMovement: 0 }
   );
 
   return (
@@ -105,7 +106,7 @@ export function MonthlySummary({ monthKey, onDayClick, onBack }: MonthlySummaryP
 
       <h2 className="text-xl font-semibold mb-4">{monthName}</h2>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-green-50 p-4 rounded-lg">
           <p className="text-sm text-green-600">Income</p>
           <p className="text-2xl font-bold text-green-700">{formatCurrency(totals.income)} CHF</p>
@@ -118,6 +119,12 @@ export function MonthlySummary({ monthKey, onDayClick, onBack }: MonthlySummaryP
           <p className={cn('text-sm', totals.income - totals.outcome >= 0 ? 'text-blue-600' : 'text-orange-600')}>Savings</p>
           <p className={cn('text-2xl font-bold', totals.income - totals.outcome >= 0 ? 'text-blue-700' : 'text-orange-700')}>
             {formatCurrency(totals.income - totals.outcome)} CHF
+          </p>
+        </div>
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <p className="text-sm text-purple-600">Savings Account</p>
+          <p className="text-2xl font-bold text-purple-700">
+            {totals.savingsMovement >= 0 ? '+' : ''}{formatCurrency(totals.savingsMovement)} CHF
           </p>
         </div>
       </div>

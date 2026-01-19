@@ -10,9 +10,12 @@
     "build:server": "cd server && npm run build",
     "build:client": "cd client && npm run build",
     "db:start": "docker-compose up -d",
-    "db:stop": "docker-compose down"
+    "db:stop": "docker-compose down",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "concurrently": "^8.2.2"
   }
 }

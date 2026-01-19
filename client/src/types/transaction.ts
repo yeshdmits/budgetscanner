@@ -17,6 +17,7 @@ export const CATEGORIES = [
   'Travel',
   'Invest',
   'Addons',
+  'Savings Transfer',
   'Uncategorized'
 ] as const;
 
@@ -53,6 +54,9 @@ export interface MonthlySummary {
   income: number;
   outcome: number;
   savings: number;
+  savingsIn: number;
+  savingsOut: number;
+  savingsMovement: number;
   transactionCount: number;
 }
 
@@ -62,6 +66,9 @@ export interface DailySummary {
   income: number;
   outcome: number;
   savings: number;
+  savingsIn: number;
+  savingsOut: number;
+  savingsMovement: number;
   balance: number;
   transactionCount: number;
 }
@@ -71,6 +78,9 @@ export interface DayDetail {
   income: number;
   outcome: number;
   savings: number;
+  savingsIn: number;
+  savingsOut: number;
+  savingsMovement: number;
   balance: number;
   transactions: Transaction[];
 }

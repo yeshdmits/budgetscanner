@@ -9,7 +9,7 @@ export async function uploadTransactions(req: Request, res: Response) {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
-    const parsedTransactions = parseCSV(req.file.buffer);
+    const parsedTransactions = await parseCSV(req.file.buffer);
 
     if (parsedTransactions.length === 0) {
       return res.status(400).json({ success: false, error: 'No valid transactions found in CSV' });
@@ -102,14 +102,35 @@ export async function getYearlySummary(_req: Request, res: Response) {
       {
         $group: {
           _id: '$monthKey',
-          income: { $sum: '$creditCHF' },
-          outcome: { $sum: '$debitCHF' },
+          // Exclude 'Savings Transfer' from income/outcome
+          income: {
+            $sum: {
+              $cond: [{ $ne: ['$category', 'Savings Transfer'] }, '$creditCHF', 0]
+            }
+          },
+          outcome: {
+            $sum: {
+              $cond: [{ $ne: ['$category', 'Savings Transfer'] }, '$debitCHF', 0]
+            }
+          },
+          // Track savings transfers separately
+          savingsIn: {
+            $sum: {
+              $cond: [{ $eq: ['$category', 'Savings Transfer'] }, '$creditCHF', 0]
+            }
+          },
+          savingsOut: {
+            $sum: {
+              $cond: [{ $eq: ['$category', 'Savings Transfer'] }, '$debitCHF', 0]
+            }
+          },
           transactionCount: { $sum: 1 }
         }
       },
       {
         $addFields: {
-          savings: { $subtract: ['$income', '$outcome'] }
+          savings: { $subtract: ['$income', '$outcome'] },
+          savingsMovement: { $subtract: ['$savingsIn', '$savingsOut'] }
         }
       },
       { $sort: { _id: 1 } }
@@ -126,6 +147,9 @@ export async function getYearlySummary(_req: Request, res: Response) {
         income: item.income,
         outcome: item.outcome,
         savings: item.savings,
+        savingsIn: item.savingsIn,
+        savingsOut: item.savingsOut,
+        savingsMovement: item.savingsMovement,
         transactionCount: item.transactionCount
       };
     });
@@ -147,15 +171,36 @@ export async function getMonthlySummary(req: Request, res: Response) {
       {
         $group: {
           _id: '$dayKey',
-          income: { $sum: '$creditCHF' },
-          outcome: { $sum: '$debitCHF' },
+          // Exclude 'Savings Transfer' from income/outcome
+          income: {
+            $sum: {
+              $cond: [{ $ne: ['$category', 'Savings Transfer'] }, '$creditCHF', 0]
+            }
+          },
+          outcome: {
+            $sum: {
+              $cond: [{ $ne: ['$category', 'Savings Transfer'] }, '$debitCHF', 0]
+            }
+          },
+          // Track savings transfers separately
+          savingsIn: {
+            $sum: {
+              $cond: [{ $eq: ['$category', 'Savings Transfer'] }, '$creditCHF', 0]
+            }
+          },
+          savingsOut: {
+            $sum: {
+              $cond: [{ $eq: ['$category', 'Savings Transfer'] }, '$debitCHF', 0]
+            }
+          },
           transactionCount: { $sum: 1 },
           endBalance: { $last: '$balanceCHF' }
         }
       },
       {
         $addFields: {
-          savings: { $subtract: ['$income', '$outcome'] }
+          savings: { $subtract: ['$income', '$outcome'] },
+          savingsMovement: { $subtract: ['$savingsIn', '$savingsOut'] }
         }
       },
       { $sort: { _id: 1 } }
@@ -172,6 +217,9 @@ export async function getMonthlySummary(req: Request, res: Response) {
         income: item.income,
         outcome: item.outcome,
         savings: item.savings,
+        savingsIn: item.savingsIn,
+        savingsOut: item.savingsOut,
+        savingsMovement: item.savingsMovement,
         balance: item.endBalance,
         transactionCount: item.transactionCount
       };
@@ -192,11 +240,16 @@ export async function getDailySummary(req: Request, res: Response) {
     const transactions = await Transaction.find({ dayKey }).sort({ date: -1 });
 
     const summary = transactions.reduce(
-      (acc, tx) => ({
-        income: acc.income + tx.creditCHF,
-        outcome: acc.outcome + tx.debitCHF
-      }),
-      { income: 0, outcome: 0 }
+      (acc, tx) => {
+        const isSavingsTransfer = tx.category === 'Savings Transfer';
+        return {
+          income: acc.income + (isSavingsTransfer ? 0 : tx.creditCHF),
+          outcome: acc.outcome + (isSavingsTransfer ? 0 : tx.debitCHF),
+          savingsIn: acc.savingsIn + (isSavingsTransfer ? tx.creditCHF : 0),
+          savingsOut: acc.savingsOut + (isSavingsTransfer ? tx.debitCHF : 0)
+        };
+      },
+      { income: 0, outcome: 0, savingsIn: 0, savingsOut: 0 }
     );
 
     const lastTransaction = transactions[0];
@@ -208,6 +261,9 @@ export async function getDailySummary(req: Request, res: Response) {
         income: summary.income,
         outcome: summary.outcome,
         savings: summary.income - summary.outcome,
+        savingsIn: summary.savingsIn,
+        savingsOut: summary.savingsOut,
+        savingsMovement: summary.savingsIn - summary.savingsOut,
         balance: lastTransaction?.balanceCHF || 0,
         transactions
       }

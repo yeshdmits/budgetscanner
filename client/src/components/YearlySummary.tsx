@@ -103,9 +103,10 @@ export function YearlySummary({ onMonthClick }: YearlySummaryProps) {
     (acc, item) => ({
       income: acc.income + item.income,
       outcome: acc.outcome + item.outcome,
-      savings: acc.savings + item.savings
+      savings: acc.savings + item.savings,
+      savingsMovement: acc.savingsMovement + (item.savingsMovement || 0)
     }),
-    { income: 0, outcome: 0, savings: 0 }
+    { income: 0, outcome: 0, savings: 0, savingsMovement: 0 }
   );
 
   return (
@@ -127,7 +128,7 @@ export function YearlySummary({ onMonthClick }: YearlySummaryProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-green-50 p-4 rounded-lg">
           <p className="text-sm text-green-600">Total Income</p>
           <p className="text-2xl font-bold text-green-700">{formatCurrency(totals.income)} CHF</p>
@@ -140,6 +141,12 @@ export function YearlySummary({ onMonthClick }: YearlySummaryProps) {
           <p className={cn('text-sm', totals.savings >= 0 ? 'text-blue-600' : 'text-orange-600')}>Total Savings</p>
           <p className={cn('text-2xl font-bold', totals.savings >= 0 ? 'text-blue-700' : 'text-orange-700')}>
             {formatCurrency(totals.savings)} CHF
+          </p>
+        </div>
+        <div className={cn('p-4 rounded-lg', totals.savingsMovement >= 0 ? 'bg-purple-50' : 'bg-purple-50')}>
+          <p className="text-sm text-purple-600">Savings Account</p>
+          <p className={cn('text-2xl font-bold', totals.savingsMovement >= 0 ? 'text-purple-700' : 'text-purple-700')}>
+            {totals.savingsMovement >= 0 ? '+' : ''}{formatCurrency(totals.savingsMovement)} CHF
           </p>
         </div>
       </div>

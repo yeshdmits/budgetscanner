@@ -19,6 +19,7 @@ export const CATEGORIES = [
   'Travel',
   'Invest',
   'Addons',
+  'Savings Transfer',
   'Uncategorized'
 ] as const;
 
