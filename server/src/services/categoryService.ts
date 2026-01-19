@@ -7,109 +7,83 @@ interface CategoryRule {
 }
 
 const categoryRules: CategoryRule[] = [
-  // High priority rules (check first for specific patterns)
+  // ============================================
+  // HIGH PRIORITY RULES (specific patterns first)
+  // ============================================
+
+  // Rideshare - Uber trips (not food delivery)
   {
-    category: 'Cafe/Restaurants',
+    category: 'Rideshare',
+    patterns: ['UBER *TRIP', 'UBER  *TRIP', 'UBER   *TRIP', 'Bolt', 'Taxi', 'LYFT'],
+    priority: 100
+  },
+  // Dining Out - Uber Eats food delivery
+  {
+    category: 'Dining Out',
     patterns: ['UBER *EATS', 'UBER  *EATS'],
     priority: 100
   },
-  {
-    category: 'Travel',
-    patterns: ['UBER *TRIP', 'UBER  *TRIP'],
-    priority: 100
-  },
+  // Rent - fixed costs
   {
     category: 'Rent',
     patterns: ['Standing order', 'Miete', 'ALBEK AMBRA'],
     priority: 90
   },
 
-  // Standard rules
+  // ============================================
+  // STANDARD PRIORITY RULES
+  // ============================================
+
+  // Essential/Fixed Costs
   {
-    category: 'Food',
+    category: 'Health Insurance',
+    patterns: ['Sanitas', 'Helsana', 'CSS', 'Visana', 'Krankenkasse', 'Grundversicherung'],
+    priority: 50
+  },
+  {
+    category: 'Mobile & Internet',
+    patterns: ['Swisscom', 'SWISSCOM BILLING', 'Sunrise', 'Salt', 'UPC', 'Quickline'],
+    priority: 50
+  },
+  {
+    category: 'Bank Fees',
+    patterns: ['Payment transaction prices', 'Interest on amount overdrawn', 'Interest on credit', 'Kontoführung', 'Bankgebühr'],
+    priority: 50
+  },
+
+  // Daily Living
+  {
+    category: 'Groceries',
     patterns: [
-      'Migros', 'Coop', 'Denner', 'migrolino', 'Avec',
+      'Migros', 'Coop', 'Denner', 'migrolino', 'Avec', 'Aldi', 'Lidl',
       'COOP VITALITY', 'CARREFOUR', 'MONOPRIX', 'k kiosk',
-      'Filiale', 'SUPERETTE'
+      'Filiale', 'SUPERETTE', 'Spar', 'Volg'
     ],
     priority: 50
   },
   {
-    category: 'Utilities',
-    patterns: ['JUMBO', 'IKEA', 'Personenmeldeamt'],
-    priority: 50
-  },
-  {
-    category: 'Cafe/Restaurants',
+    category: 'Dining Out',
     patterns: [
       'Lakomka', 'SUBWAY', 'WANGKHAR', 'STARBUCKS', 'Seven Stars',
       'Suan Long', 'MCDONALDS', 'Aroy Food', 'VICAFE', 'Caffe Spettacolo',
       'Kuni & Gunde', 'Miro Bahnhof', 'Scent of Bamboo', 'K2 Express',
       'Restaurant', 'Cafe', 'Coffee', 'MINIME', 'PHIE HALWANI',
       'HIPPY MARKET', 'LE COLVERT', 'LE LUTECE', 'SAPPORO', 'GEORGIEN',
-      'Oranta', 'Walkthrough Level'
+      'Oranta', 'Walkthrough Level', 'Burger King', 'KFC', 'Pizza',
+      'Tamarind Hill', 'Rice Up!'
     ],
     priority: 50
   },
   {
-    category: 'Steam/HoYoverse',
-    patterns: ['Steam', 'STEAM PURCHASE', 'HoYoverse', 'PlayStation', 'Xbox'],
-    priority: 50
-  },
-  {
-    category: 'AliExpress',
-    patterns: ['aliexpress', 'Alibaba'],
-    priority: 50
-  },
-  {
-    category: 'Youtube/Spotify',
-    patterns: ['Spotify', 'YouTube', 'Netflix', 'Disney'],
-    priority: 50
-  },
-  {
-    category: 'Clothes',
-    patterns: [
-      'H & M', 'H&M', 'Metro Boutique', 'Zara', 'C&A', 'PKZ',
-      'Decathlon', 'Dr Martens', 'LARRY H', 'FJ DIFFUSION', 'MON ETOILE'
-    ],
-    priority: 50
-  },
-  {
-    category: 'Swisscom',
-    patterns: ['Swisscom', 'SWISSCOM BILLING'],
-    priority: 50
-  },
-  {
-    category: 'Sanitas (Med)',
-    patterns: [
-      'Sanitas', 'Helsana', 'CSS', 'Visana',
-      'APOTHEKE', 'PHARMACIE', 'zahnarztzentrum', 'STERNEN-APOTHEKE'
-    ],
-    priority: 50
-  },
-  {
-    category: 'SBB',
-    patterns: ['SBB CFF FFS', 'ZVV', 'DB FERNVERKEHR', 'Bahn'],
-    priority: 50
-  },
-  {
-    category: 'Interdiscount/MediaMarkt',
-    patterns: ['Interdiscount', 'MediaMarkt', 'mobilezone', 'Digitec', 'Galaxus'],
-    priority: 50
-  },
-  {
-    category: 'Cash (ATM)',
+    category: 'Cash Withdrawal',
     patterns: ['Withdrawal', 'ATM', 'Bargeld', 'Bargeldbezug'],
     priority: 50
   },
+
+  // Transportation
   {
-    category: 'Twint',
-    patterns: ['TWINT'],
-    priority: 30 // Lower priority so specific TWINT merchants get matched first
-  },
-  {
-    category: 'Support',
-    patterns: ['Preply', 'Udemy', 'Coursera'],
+    category: 'Public Transport',
+    patterns: ['SBB CFF FFS', 'ZVV', 'DB FERNVERKEHR', 'Bahn', 'VERKEHRSVERBUND', 'BLS', 'Tram', 'Bus AG'],
     priority: 50
   },
   {
@@ -117,26 +91,100 @@ const categoryRules: CategoryRule[] = [
     patterns: [
       'HOTEL', 'SNCF', 'RATP', 'MUSEE', 'LOUVRE', 'Booking', 'Airbnb',
       'Flug', 'flight', 'SWISS INTERNATIONAL AIR', 'SERVICE NAVIGO',
-      'TICKET', 'LOUVRETICKET', 'MUSEE ORSAY', 'TICKET WEEZEVENT'
+      'TICKET', 'LOUVRETICKET', 'MUSEE ORSAY', 'TICKET WEEZEVENT',
+      'ORSAY', 'TGV', 'Eurostar', 'Ryanair', 'Easyjet'
     ],
     priority: 50
   },
+
+  // Shopping
   {
-    category: 'Invest',
-    patterns: ['CLAUDE.AI'],
-    priority: 50
-  },
-  {
-    category: 'Addons',
+    category: 'Electronics',
     patterns: [
-      'APPLE.COM/BILL', 'LUSH', 'L.Occitane', 'LOccitane', 'Orell Fussli',
-      'PAPYRIN', 'ACTIONWORLD', 'WAL*LUSH', 'Google Play'
+      'Interdiscount', 'MediaMarkt', 'MEDIA MARKT', 'mobilezone', 'Digitec', 'Galaxus',
+      'Apple Store', 'Apple Zurich', 'APPLE.COM/BILL', 'Google Play'
     ],
     priority: 50
   },
-  // GOOGLE has lower priority - could be subscription or other
   {
-    category: 'Youtube/Spotify',
+    category: 'Home & Furnishing',
+    patterns: ['IKEA', 'JUMBO', 'Möbel', 'Pfister', 'Micasa', 'Lumimart', 'Personenmeldeamt'],
+    priority: 50
+  },
+  {
+    category: 'Clothing',
+    patterns: [
+      'H & M', 'H&M', 'Metro Boutique', 'Zara', 'C&A', 'PKZ',
+      'Decathlon', 'Dr Martens', 'LARRY H', 'FJ DIFFUSION', 'MON ETOILE',
+      'Uniqlo', 'Mango', 'Reserved', 'Snipes', 'Foot Locker'
+    ],
+    priority: 50
+  },
+  {
+    category: 'Online Shopping',
+    patterns: ['aliexpress', 'Alibaba', 'Amazon', 'AMZN', 'eBay', 'Wish', 'Temu'],
+    priority: 50
+  },
+
+  // Entertainment & Subscriptions
+  {
+    category: 'Streaming',
+    patterns: ['Spotify', 'YouTube', 'Netflix', 'Disney', 'HBO', 'Twitch', 'Crunchyroll'],
+    priority: 50
+  },
+  {
+    category: 'Gaming',
+    patterns: ['Steam', 'STEAM PURCHASE', 'STEAMGAMES', 'HoYoverse', 'HOYOVERSE', 'PlayStation', 'Xbox', 'Nintendo', 'Epic Games'],
+    priority: 50
+  },
+  {
+    category: 'AI Tools',
+    patterns: ['CLAUDE.AI', 'ChatGPT', 'OpenAI', 'Cursor', 'Copilot', 'Anthropic'],
+    priority: 50
+  },
+
+  // Health & Wellness
+  {
+    category: 'Medical & Pharmacy',
+    patterns: [
+      'ODONTO', 'APOTHEKE', 'PHARMACIE', 'zahnarztzentrum', 'STERNEN-APOTHEKE',
+      'Dentist', 'Zahnarzt', 'Arzt', 'Praxis', 'Klinik', 'Spital', 'DOUAT'
+    ],
+    priority: 50
+  },
+  {
+    category: 'Fitness',
+    patterns: ['NonStop Gym', 'Gym', 'Fitnesscenter', 'ACTIV FITNESS', 'Migros Fitness', 'Holmes Place', 'Kieser', 'Crossfit'],
+    priority: 50
+  },
+  {
+    category: 'Personal Care',
+    patterns: [
+      'LUSH', 'L.Occitane', 'LOccitane', 'FADECUT', 'Coiffeur', 'Haircut',
+      'Friseur', 'Barber', 'Salon', 'WAL*LUSH', 'WEST FADECUT', 'Sephora', 'Douglas'
+    ],
+    priority: 50
+  },
+
+  // Other
+  {
+    category: 'Education',
+    patterns: ['Preply', 'Udemy', 'Coursera', 'Orell Fussli', 'Buchhandlung', 'Books', 'PAPYRIN', 'Ex Libris', 'Thalia'],
+    priority: 50
+  },
+  {
+    category: 'Insurance',
+    patterns: ['AXA', 'Mobiliar', 'VERSICHERUNG', 'Zurich Insurance', 'Allianz', 'Generali', 'Baloise'],
+    priority: 50
+  },
+
+  // ============================================
+  // LOWER PRIORITY RULES (catch-all patterns)
+  // ============================================
+
+  // GOOGLE - likely YouTube/Streaming
+  {
+    category: 'Streaming',
     patterns: ['GOOGLE'],
     priority: 20
   }
@@ -180,24 +228,35 @@ export function categorizeTransaction(
 
 export function getAllCategories(): Category[] {
   return [
-    'Food',
-    'Utilities',
-    'Cafe/Restaurants',
-    'Steam/HoYoverse',
-    'AliExpress',
-    'Youtube/Spotify',
-    'Clothes',
-    'Swisscom',
-    'Sanitas (Med)',
-    'SBB',
+    // Essential/Fixed Costs
     'Rent',
-    'Interdiscount/MediaMarkt',
-    'Cash (ATM)',
-    'Twint',
-    'Support',
+    'Health Insurance',
+    'Mobile & Internet',
+    'Bank Fees',
+    // Daily Living
+    'Groceries',
+    'Dining Out',
+    'Cash Withdrawal',
+    // Transportation
+    'Public Transport',
+    'Rideshare',
     'Travel',
-    'Invest',
-    'Addons',
+    // Shopping
+    'Electronics',
+    'Home & Furnishing',
+    'Clothing',
+    'Online Shopping',
+    // Entertainment & Subscriptions
+    'Streaming',
+    'Gaming',
+    'AI Tools',
+    // Health & Wellness
+    'Medical & Pharmacy',
+    'Fitness',
+    'Personal Care',
+    // Other
+    'Education',
+    'Insurance',
     'Savings Transfer',
     'Uncategorized'
   ];
