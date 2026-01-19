@@ -18,6 +18,7 @@ Personal finance tracking application for ZKB bank statements with automatic tra
 | Frontend | React, TypeScript, Vite, TanStack Query, Recharts, Tailwind CSS |
 | Backend | Express, TypeScript, MongoDB, Mongoose |
 | Testing | Playwright |
+| Deployment | Docker, Helm, Kubernetes |
 
 ## Project Structure
 
@@ -26,72 +27,80 @@ budgetscanner/
 ├── client/              # React frontend
 ├── server/              # Express API
 ├── e2e/                 # Playwright tests
+├── helm/                # Kubernetes Helm chart
 ├── docker-compose.yml   # MongoDB service
 ├── Dockerfile           # Production image
 └── package.json         # Root scripts
 ```
 
-## Local Development
+## Documentation
+
+| Component | Description |
+|-----------|-------------|
+| [Client](./client/README.md) | React frontend development |
+| [Server](./server/README.md) | Express API development |
+| [E2E Tests](./e2e/README.md) | Playwright end-to-end testing |
+| [Helm Chart](./helm/README.md) | Kubernetes deployment |
+
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
 - Docker (for MongoDB)
 
-### Setup
-
-1. **Start MongoDB**
-   ```bash
-   npm run db:start
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   cd client && npm install
-   cd ../server && npm install
-   ```
-
-3. **Configure environment**
-
-   Create `server/.env`:
-   ```
-   MONGODB_URI=mongodb://localhost:27017/budgetscanner
-   PORT=3001
-   CLIENT_URL=http://localhost:5173
-   ```
-
-4. **Start development servers**
-   ```bash
-   npm run dev
-   ```
-
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:3001
-   - API Docs: http://localhost:3001/api-docs
-
-## Production Docker Build
-
-### Build
+### Local Development
 
 ```bash
-# Build client and server
-npm run build
+# 1. Start MongoDB
+npm run db:start
 
-# Build Docker image
-docker build -t budgetscanner .
+# 2. Install dependencies
+npm install
+cd client && npm install
+cd ../server && npm install
+cd ..
+
+# 3. Configure environment
+cat > server/.env << EOF
+MONGODB_URI=mongodb://localhost:27017/budgetscanner
+PORT=3001
+CLIENT_URL=http://localhost:5173
+EOF
+
+# 4. Start development servers
+npm run dev
 ```
 
-### Run
+**Access points:**
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3001
+- API Docs: http://localhost:3001/api-docs
+
+### Production Docker
 
 ```bash
+# Build
+npm run build
+docker build -t budgetscanner .
+
+# Run
 docker run -p 3001:3001 \
   -e MONGODB_URI=mongodb://host.docker.internal:27017/budgetscanner \
-  -e PORT=3001 \
   budgetscanner
 ```
 
-Access the application at http://localhost:3001
+### Kubernetes Deployment
+
+```bash
+# Install with Helm
+helm install budgetscanner ./helm/budgetscanner
+
+# Access via port-forward
+kubectl port-forward svc/budgetscanner 8080:80
+```
+
+See [Helm README](./helm/README.md) for detailed configuration options.
 
 ## Available Scripts
 
@@ -103,3 +112,20 @@ Access the application at http://localhost:3001
 | `npm run db:stop` | Stop MongoDB container |
 | `npm test` | Run Playwright e2e tests |
 | `npm run test:ui` | Run Playwright with UI |
+
+## Testing
+
+Run end-to-end tests with Playwright:
+
+```bash
+# Run all tests
+npm test
+
+# Run with UI for debugging
+npm run test:ui
+
+# Run specific test file
+npx playwright test e2e/tests/upload.spec.ts
+```
+
+See [E2E README](./e2e/README.md) for test structure and debugging.

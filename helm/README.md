@@ -1,6 +1,6 @@
 # Budget Scanner Helm Chart
 
-This Helm chart deploys the Budget Scanner application on Kubernetes. Budget Scanner is a personal finance tracking application for analyzing ZKB bank statements with automatic transaction categorization.
+This Helm chart deploys the Budget Scanner application on Kubernetes.
 
 ## Components
 
