@@ -6,17 +6,19 @@ import { formatCurrency, cn } from '../lib/utils';
 import { BudgetChart } from './BudgetChart';
 import { CategorySummary } from './CategorySummary';
 import { SortableHeader, type SortOrder } from './SortableHeader';
+import { DailyTransactionsModal } from './DailyTransactionsModal';
 
 interface MonthlySummaryProps {
   monthKey: string;
-  onDayClick: (dayKey: string) => void;
   onBack: () => void;
 }
 
-export function MonthlySummary({ monthKey, onDayClick, onBack }: MonthlySummaryProps) {
+export function MonthlySummary({ monthKey, onBack }: MonthlySummaryProps) {
   const [year, month] = monthKey.split('-');
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [hideSavingsTransfer, setHideSavingsTransfer] = useState(true);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['monthly-summary', year, month],
@@ -131,7 +133,20 @@ export function MonthlySummary({ monthKey, onDayClick, onBack }: MonthlySummaryP
 
       <BudgetChart data={chartData} />
 
-      <CategorySummary year={year} month={month} />
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold">Category Breakdown</h3>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={hideSavingsTransfer}
+            onChange={(e) => setHideSavingsTransfer(e.target.checked)}
+            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+          />
+          <span className="text-sm text-gray-600">Hide Savings Transfer</span>
+        </label>
+      </div>
+
+      <CategorySummary year={year} month={month} hideSavingsTransfer={hideSavingsTransfer} />
 
       <div className="mt-6 overflow-hidden rounded-lg border">
         <table className="min-w-full divide-y divide-gray-200">
@@ -183,7 +198,7 @@ export function MonthlySummary({ monthKey, onDayClick, onBack }: MonthlySummaryP
             {sortedDays.map(item => (
               <tr
                 key={item.dayKey}
-                onClick={() => onDayClick(item.dayKey)}
+                onClick={() => setSelectedDay(item.dayKey)}
                 className="hover:bg-gray-50 cursor-pointer"
               >
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.day}</td>
@@ -207,6 +222,13 @@ export function MonthlySummary({ monthKey, onDayClick, onBack }: MonthlySummaryP
           </tbody>
         </table>
       </div>
+
+      {selectedDay && (
+        <DailyTransactionsModal
+          dayKey={selectedDay}
+          onClose={() => setSelectedDay(null)}
+        />
+      )}
     </div>
   );
 }

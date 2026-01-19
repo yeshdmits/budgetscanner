@@ -1,22 +1,35 @@
 export const CATEGORIES = [
-  'Food',
-  'Utilities',
-  'Cafe/Restaurants',
-  'Steam/HoYoverse',
-  'AliExpress',
-  'Youtube/Spotify',
-  'Clothes',
-  'Swisscom',
-  'Sanitas (Med)',
-  'SBB',
+  // Income
+  'Salary',
+  // Essential/Fixed Costs
   'Rent',
-  'Interdiscount/MediaMarkt',
-  'Cash (ATM)',
-  'Twint',
-  'Support',
+  'Health Insurance',
+  'Mobile & Internet',
+  'Bank Fees',
+  // Daily Living
+  'Groceries',
+  'Dining Out',
+  'Cash Withdrawal',
+  // Transportation
+  'Public Transport',
+  'Rideshare',
   'Travel',
-  'Invest',
-  'Addons',
+  // Shopping
+  'Electronics',
+  'Home & Furnishing',
+  'Clothing',
+  'Online Shopping',
+  // Entertainment & Subscriptions
+  'Streaming',
+  'Gaming',
+  'AI Tools',
+  // Health & Wellness
+  'Medical & Pharmacy',
+  'Fitness',
+  'Personal Care',
+  // Other
+  'Education',
+  'Insurance',
   'Savings Transfer',
   'Uncategorized'
 ] as const;

@@ -10,15 +10,24 @@ import { SortableHeader, type SortOrder } from './SortableHeader';
 interface DailySummaryProps {
   dayKey: string;
   onBack: () => void;
+  categoryFilter: string;
+  typeFilter: 'all' | 'credit' | 'debit';
+  onCategoryFilterChange: (value: string) => void;
+  onTypeFilterChange: (value: 'all' | 'credit' | 'debit') => void;
 }
 
-export function DailySummary({ dayKey, onBack }: DailySummaryProps) {
+export function DailySummary({
+  dayKey,
+  onBack,
+  categoryFilter,
+  typeFilter,
+  onCategoryFilterChange,
+  onTypeFilterChange
+}: DailySummaryProps) {
   const [year, month, day] = dayKey.split('-');
   const queryClient = useQueryClient();
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['daily-summary', year, month, day],
@@ -168,7 +177,7 @@ export function DailySummary({ dayKey, onBack }: DailySummaryProps) {
             <label className="text-sm text-gray-600">Category:</label>
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => onCategoryFilterChange(e.target.value)}
               className="px-2 py-1 border border-gray-300 rounded text-sm bg-white"
             >
               <option value="all">All Categories</option>
@@ -181,7 +190,7 @@ export function DailySummary({ dayKey, onBack }: DailySummaryProps) {
             <label className="text-sm text-gray-600">Type:</label>
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => onTypeFilterChange(e.target.value as 'all' | 'credit' | 'debit')}
               className="px-2 py-1 border border-gray-300 rounded text-sm bg-white"
             >
               <option value="all">All Types</option>

@@ -210,8 +210,18 @@ export function categorizeTransaction(
     }
   }
 
-  // Skip categorization for other credit (income) transactions
+  // Categorize credit (income) transactions
   if (type === 'credit') {
+    // Salary patterns
+    const salaryPatterns = [
+      'salary', 'lohn', 'gehalt', 'wages', 'payroll',
+      'credit salary', 'monthly salary', 'wage payment'
+    ];
+    for (const pattern of salaryPatterns) {
+      if (textToMatch.includes(pattern)) {
+        return 'Salary';
+      }
+    }
     return 'Uncategorized';
   }
 
@@ -228,6 +238,8 @@ export function categorizeTransaction(
 
 export function getAllCategories(): Category[] {
   return [
+    // Income
+    'Salary',
     // Essential/Fixed Costs
     'Rent',
     'Health Insurance',

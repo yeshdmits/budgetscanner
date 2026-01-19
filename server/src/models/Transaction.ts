@@ -1,6 +1,8 @@
 import { Schema, model, Document } from 'mongoose';
 
 export const CATEGORIES = [
+  // Income
+  'Salary',
   // Essential/Fixed Costs
   'Rent',
   'Health Insurance',

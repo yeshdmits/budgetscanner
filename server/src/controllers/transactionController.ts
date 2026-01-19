@@ -50,13 +50,14 @@ export async function uploadTransactions(req: Request, res: Response) {
 export async function getTransactions(req: Request, res: Response) {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 1000);
     const sortBy = (req.query.sortBy as string) || 'date';
     const order = req.query.order === 'asc' ? 1 : -1;
     const type = req.query.type as string;
     const startDate = req.query.startDate as string;
     const endDate = req.query.endDate as string;
     const search = req.query.search as string;
+    const monthKey = req.query.monthKey as string;
 
     const filter: Record<string, unknown> = {};
 
@@ -64,7 +65,9 @@ export async function getTransactions(req: Request, res: Response) {
       filter.type = type;
     }
 
-    if (startDate || endDate) {
+    if (monthKey) {
+      filter.monthKey = monthKey;
+    } else if (startDate || endDate) {
       filter.date = {};
       if (startDate) (filter.date as Record<string, Date>).$gte = new Date(startDate);
       if (endDate) (filter.date as Record<string, Date>).$lte = new Date(endDate);
@@ -290,13 +293,21 @@ export async function deleteBatch(req: Request, res: Response) {
   }
 }
 
-export async function deleteAllTransactions(_req: Request, res: Response) {
+export async function deleteAllTransactions(req: Request, res: Response) {
   try {
-    const result = await Transaction.deleteMany({});
+    const year = req.query.year as string;
+    const filter: Record<string, unknown> = {};
 
+    if (year) {
+      filter.yearKey = year;
+    }
+
+    const result = await Transaction.deleteMany(filter);
+
+    const yearMsg = year ? ` for year ${year}` : '';
     res.json({
       success: true,
-      message: `Deleted ${result.deletedCount} transactions`,
+      message: `Deleted ${result.deletedCount} transactions${yearMsg}`,
       deleted: result.deletedCount
     });
   } catch (error) {
@@ -325,9 +336,16 @@ function escapeCSVField(field: string): string {
   return field;
 }
 
-export async function exportTransactions(_req: Request, res: Response) {
+export async function exportTransactions(req: Request, res: Response) {
   try {
-    const transactions = await Transaction.find({}).sort({ date: 1 });
+    const year = req.query.year as string;
+    const filter: Record<string, unknown> = {};
+
+    if (year) {
+      filter.yearKey = year;
+    }
+
+    const transactions = await Transaction.find(filter).sort({ date: 1 });
 
     if (transactions.length === 0) {
       return res.status(404).json({ success: false, error: 'No transactions to export' });
@@ -367,7 +385,8 @@ export async function exportTransactions(_req: Request, res: Response) {
 
     const csvContent = [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
 
-    const filename = `transactions_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    const yearSuffix = year ? `_${year}` : '';
+    const filename = `transactions_export${yearSuffix}_${new Date().toISOString().slice(0, 10)}.csv`;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

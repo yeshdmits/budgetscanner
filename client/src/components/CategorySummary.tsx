@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Loader2 } from 'lucide-react';
 import { getCategorySummary } from '../api/categories';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, cn } from '../lib/utils';
+import { CategoryTransactionsModal } from './CategoryTransactionsModal';
 
 interface CategorySummaryProps {
   year: string;
   month: string;
+  hideSavingsTransfer?: boolean;
 }
 
 const COLORS = [
@@ -31,7 +34,9 @@ const COLORS = [
   '#94a3b8'  // gray
 ];
 
-export function CategorySummary({ year, month }: CategorySummaryProps) {
+export function CategorySummary({ year, month, hideSavingsTransfer = false }: CategorySummaryProps) {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['category-summary', year, month],
     queryFn: () => getCategorySummary(year, month)
@@ -53,9 +58,25 @@ export function CategorySummary({ year, month }: CategorySummaryProps) {
     );
   }
 
-  const { categories, totalExpenses } = data.data;
+  const { categories: rawCategories, totalExpenses: rawTotalExpenses } = data.data;
 
-  if (categories.length === 0) {
+  // Filter out Savings Transfer if hidden
+  const categories = hideSavingsTransfer
+    ? rawCategories.filter(cat => cat.category !== 'Savings Transfer')
+    : rawCategories;
+
+  // Recalculate total and percentages if filtered
+  const totalExpenses = hideSavingsTransfer
+    ? categories.reduce((sum, cat) => sum + cat.total, 0)
+    : rawTotalExpenses;
+
+  // Recalculate percentages based on filtered total
+  const categoriesWithPercentages = categories.map(cat => ({
+    ...cat,
+    percentage: totalExpenses > 0 ? Math.round((cat.total / totalExpenses) * 100) : 0
+  }));
+
+  if (categoriesWithPercentages.length === 0) {
     return (
       <div className="p-4 text-gray-500 text-center">
         No expense data for this month
@@ -63,7 +84,7 @@ export function CategorySummary({ year, month }: CategorySummaryProps) {
     );
   }
 
-  const pieData = categories.map((cat, index) => ({
+  const pieData = categoriesWithPercentages.map((cat, index) => ({
     name: cat.category,
     value: cat.total,
     color: COLORS[index % COLORS.length]
@@ -71,8 +92,6 @@ export function CategorySummary({ year, month }: CategorySummaryProps) {
 
   return (
     <div className="mb-8">
-      <h3 className="text-lg font-semibold mb-4">Category Breakdown</h3>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Table */}
         <div className="overflow-hidden rounded-lg border">
@@ -85,15 +104,25 @@ export function CategorySummary({ year, month }: CategorySummaryProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
-              {categories.map((cat, index) => (
-                <tr key={cat.category}>
+              {categoriesWithPercentages.map((cat, index) => (
+                <tr
+                  key={cat.category}
+                  onClick={() => setSelectedCategory(cat.category)}
+                  className={cn(
+                    "cursor-pointer hover:bg-gray-50 transition-colors",
+                    cat.category === 'Uncategorized' && "bg-orange-50 hover:bg-orange-100"
+                  )}
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: COLORS[index % COLORS.length] }}
                       />
-                      <span className="text-sm font-medium text-gray-900">{cat.category}</span>
+                      <span className={cn(
+                        "text-sm font-medium",
+                        cat.category === 'Uncategorized' ? "text-orange-700" : "text-gray-900"
+                      )}>{cat.category}</span>
                       <span className="text-xs text-gray-500">({cat.count})</span>
                     </div>
                   </td>
@@ -154,6 +183,15 @@ export function CategorySummary({ year, month }: CategorySummaryProps) {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {selectedCategory && (
+        <CategoryTransactionsModal
+          year={year}
+          month={month}
+          category={selectedCategory}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </div>
   );
 }
