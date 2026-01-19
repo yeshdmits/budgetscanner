@@ -16,6 +16,12 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
-    "concurrently": "^8.2.2"
+    "@types/node": "^25.0.9",
+    "@types/uuid": "^9.0.0",
+    "concurrently": "^8.2.2",
+    "mongodb": "^6.3.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "uuid": "^9.0.0"
   }
 }
